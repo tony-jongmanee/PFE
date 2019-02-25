@@ -4,24 +4,24 @@ import random
 #from scipy.stats import entropy
 from math import log
 import matplotlib.pyplot as plt
+import time
 
+# KL-Divergence
 def KLD(x, y, ncol):
-    x_norme = x
     sum = 0
     for i in range(0,ncol):
-        if x_norme[i]>0 and y[i]!=0:
-            sum = sum + x_norme[i]*log(x_norme[i]/y[i])
+        if x[i]>0 and y[i]>0 and y[i]!=0:
+            sum = sum + x[i]*log(x[i]/y[i])
     return sum
 
 def distance_KLD(x, y, ncol):
     return KLD(x, y, ncol)/2 + KLD(y, x, ncol)/2
 
+# Méthode de comparaison des médoides
 def compare(medoids, newmedoids, k, ncol):
     fini = True
     i = 0
     j = 0
-    #print(medoids)
-    #print(newmedoids)
     while(fini and i<k and j<ncol):
         if(medoids[i][j]!=newmedoids[i][j]):
             fini = False
@@ -29,7 +29,9 @@ def compare(medoids, newmedoids, k, ncol):
         j = j+1
     return fini
 
+#Méthode de sélection des médoides initiaux
 def medoids_selection(data, k, ncol):
+    
     d = pd.DataFrame(data)
     initial = []
     for i in range(0,k):
@@ -90,11 +92,11 @@ def medoids_selection(data, k, ncol):
             
                 
             d = d.drop([indice_min])
-        print(Aindice)
         # choix d'un point au hasard dans les Am
         initial[l] = Aindice[random.randint(0,len(A)-1)]
     return initial
-                        
+
+# K-Medoids                        
 def medoids(data, k):
     nrow = data.shape[0]
     ncol = data.shape[1]
@@ -107,13 +109,13 @@ def medoids(data, k):
         medoids_val.append([0] * ncol)
         newmedoids_val.append([0] * ncol)
     
-    
     # phase de construction
     ## selection des medoids
     medoids = medoids_selection(data, k, ncol)
     for i in range(0,k):
         medoids_val[i] = data.iloc[medoids[i]]
-    print(medoids)
+    print(medoids)   
+
     ## affectation aux clusters
     for i in range(0,nrow):
         d = distance_KLD(data.iloc[i], medoids_val[0], ncol)
@@ -154,39 +156,74 @@ def medoids(data, k):
                     d = temp
         fini = compare(medoids_val, newmedoids_val, k, ncol)
         cpt= cpt +1
-        print(cpt)
-        print(cluster)
-    cluster_dataF = pd.DataFrame(cluster, columns=['cluster'])
-    return cluster_dataF
-                      
+    print(cpt)
+    return cluster
+'''        
+# Base de données IRIS          
 df = pd.read_csv("C:/Users/Jongmanee Tony/Desktop/iris.txt", sep=",", names=["sepal length","sepal width", "petal length", "petal width", "classe"])
 data = df.drop("classe", 1)
 nrow = data.shape[0]
+ncol = data.shape[1]
+
+#ajout du bruit
+for i in range(0,nrow):
+    data.loc[i][0] = data.loc[i][0] + np.random.normal(0, 0.5)
+    data.loc[i][1] = data.loc[i][1] + np.random.normal(0, 0.5)
+    data.loc[i][2] = data.loc[i][2] + np.random.normal(0, 0.05)
+    data.loc[i][3] = data.loc[i][3] + np.random.normal(0, 0.03)
+
+#calcul du temps d'exécution
+start_time = time.time() #début du timer
 cluster = medoids(data, 3)
+end_time = time.time() #fin du timer
+print("Temps d'exécution : %s secondes" % (end_time-start_time))
 
-df['cluster']=cluster
-print(df)
 
-'''
 # Robustesse/Simulation
 nb = 10
 cluster = []
 for i in range(nb):
         cluster.append([0] * nrow)
 for i in range(0,nb):
-    cluster[i] = medoids(data,3)
+    cluster[i] = medoids(data, 3)
 
-for i in range(nb):
-    print(cluster[i])
-'''
+for i in range(0,nb):
+    print(i)
+    print(0, cluster[i].count(0))
+    print(1, cluster[i].count(1))
+    print(2, cluster[i].count(2))
+
+
 # plot
+cluster_dataF = pd.DataFrame(cluster, columns=['cluster'])
+df['cluster']=cluster_dataF
+print(df)
 colormap = np.array(['r', 'g', 'b'])
-
 plt.legend()
 plt.title("iris.arff")
-
 plt.scatter(df['sepal length'], df['sepal width'], label='', c=colormap[df['cluster']])
 plt.savefig('clustering_kmedoids_KLD ')
-
 plt.show()
+
+'''
+# Base de données DIABETES  
+df2 = pd.read_csv("C:/Users/Jongmanee Tony/Desktop/diabetes.txt", sep=",", names=["preg","plas", "pres", "skin", "insu", "mass", "pedi", "age", "class"])
+data2 = df2.drop("class", 1)
+nrow2 = data2.shape[0]
+ncol2 = data2.shape[1]
+
+# Robustesse/Simulation
+nb = 10
+cluster = []
+for i in range(nb):
+    cluster.append([0] * nrow2)
+print("ici")
+for i in range(0,nb):
+    print(i)
+    cluster[i] = medoids(data2, 2)
+for i in range(0,nb):
+    print(i)
+    print(0, cluster[i].count(0))
+    print(1, cluster[i].count(1))
+
 
